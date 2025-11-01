@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+// src/OrdersDashboard.tsx
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,9 +22,18 @@ const statuses = [
 ];
 
 const products = [
-  { name: "Кольцо с бриллиантом", sku: "KB-001", price: 7950, sizes: [16, 17, 18] },
-  { name: "Серьги золотые", sku: "ER-210", price: 5600, sizes: ["—"] },
-  { name: "Подвеска с сапфиром", sku: "PN-078", price: 11200, sizes: ["—"] },
+  { name: "Кольцо с бриллиантом", sku: "KB-001", price: 7950, sizes: [16, 17, 18], img: "https://dummyimage.com/64x64/e5e7eb/9ca3af.png&text=%F0%9F%92%8E" },
+  { name: "Серьги золотые", sku: "ER-210", price: 5600, sizes: ["—"], img: "https://dummyimage.com/64x64/e5e7eb/9ca3af.png&text=%F0%9F%91%84" },
+  { name: "Подвеска с сапфиром", sku: "PN-078", price: 11200, sizes: ["—"], img: "https://dummyimage.com/64x64/e5e7eb/9ca3af.png&text=%F0%9F%92%99" }
+];
+
+const cities = [
+  "Москва",
+  "Санкт-Петербург",
+  "Казань",
+  "Новосибирск",
+  "Екатеринбург",
+  "Нижний Новгород"
 ];
 
 const SELECT_ALL = "__all__";
@@ -40,7 +50,7 @@ function normalizeOrder(raw: any) {
       cost: raw?.delivery?.cost ?? 0,
       date: raw?.delivery?.date ?? "",
       interval: raw?.delivery?.interval ?? "",
-      comment: raw?.delivery?.comment ?? "",
+      comment: raw?.delivery?.comment ?? ""
     },
     discount: raw?.discount ?? 0,
     payment: raw?.payment ?? "Карта",
@@ -49,7 +59,7 @@ function normalizeOrder(raw: any) {
     needManagerHelp: raw?.needManagerHelp ?? false,
     recipient: raw?.recipient ?? { enabled: false, name: "", phone: "" },
     comments: raw?.comments ?? [],
-    items: raw?.items ?? [],
+    items: raw?.items ?? []
   };
 }
 
@@ -68,8 +78,8 @@ export default function OrdersDashboard() {
       status: "CONFIRMED",
       needConfirmation: false,
       items: [
-        { id: 1, name: "Кольцо с бриллиантом", sku: "KB-001", size: 17, quantity: 2, price: 7950 },
-      ],
+        { id: 1, name: "Кольцо с бриллиантом", sku: "KB-001", size: 17, quantity: 2, price: 7950 }
+      ]
     },
     {
       id: 1002,
@@ -83,9 +93,9 @@ export default function OrdersDashboard() {
       needConfirmation: false,
       items: [
         { id: 2, name: "Серьги золотые", sku: "ER-210", size: "—", quantity: 1, price: 5600 },
-        { id: 3, name: "Подвеска с сапфиром", sku: "PN-078", size: "—", quantity: 1, price: 11200 },
-      ],
-    },
+        { id: 3, name: "Подвеска с сапфиром", sku: "PN-078", size: "—", quantity: 1, price: 11200 }
+      ]
+    }
   ];
 
   const [order, setOrder] = useState(() => normalizeOrder(orders[0]));
@@ -101,7 +111,7 @@ export default function OrdersDashboard() {
     costMin: "",
     costMax: "",
     orderStatus: "",
-    needConfirm: "",
+    needConfirm: ""
   });
   const [page, setPage] = useState(1);
   const [perPage] = useState(5);
@@ -111,16 +121,35 @@ export default function OrdersDashboard() {
     const p = products.find((x) => x.sku === sku);
     return p?.sizes ?? ["—"];
   };
+  const imgForItem = (it: { sku?: string; name?: string }) => {
+    const p = products.find((x) => x.sku === it.sku || x.name === it.name);
+    return p?.img ?? "https://dummyimage.com/64x64/e5e7eb/9ca3af.png&text=%F0%9F%8C%9F";
+  };
   const totalSum = order.items.reduce((acc, i) => acc + i.quantity * i.price, 0);
+  // Редактирование таблицы состава заказа (режим редактирования всей таблицы)
+  const [itemsEditMode, setItemsEditMode] = useState(false);
+  const itemsOriginalRef = useRef<any[]>([]);
+  const productUrl = (sku?: string) => (sku ? `/products/${sku}` : undefined);
   const updateClient = (field: string, value: any) => setOrder((prev) => ({ ...prev, client: { ...prev.client, [field]: value } }));
   const updateDelivery = (field: string, value: any) => setOrder((prev) => ({ ...prev, delivery: { ...prev.delivery, [field]: value } }));
 
   // Items
   const addItem = () => {
-    const base = products[0];
-    const newItem = { id: Date.now(), name: base.name, sku: base.sku, size: (base.sizes as any)[0] ?? "—", quantity: 1, price: base.price };
+    const newItem = { id: Date.now(), name: "", sku: "", size: "", quantity: 1, price: 0 } as any;
     setOrder((prev) => ({ ...prev, items: [...prev.items, newItem] }));
   };
+  const beginItemsEdit = () => {
+    itemsOriginalRef.current = JSON.parse(JSON.stringify(order.items));
+    setItemsEditMode(true);
+  };
+  const cancelItemsEdit = () => {
+    setOrder((prev) => ({ ...prev, items: itemsOriginalRef.current || prev.items }));
+    setItemsEditMode(false);
+  };
+  const saveItemsEdit = () => {
+    setItemsEditMode(false);
+  };
+
   const updateItem = (id: number, field: string, value: any) => {
     setOrder((prev) => ({ ...prev, items: prev.items.map((it) => (it.id === id ? { ...it, [field]: value } : it)) }));
   };
@@ -129,7 +158,7 @@ export default function OrdersDashboard() {
     if (!p) return;
     setOrder((prev) => ({
       ...prev,
-      items: prev.items.map((it) => (it.id === rowId ? { ...it, name: p.name, sku: p.sku, price: p.price, size: (p.sizes as any)[0] ?? it.size } : it)),
+      items: prev.items.map((it) => (it.id === rowId ? { ...it, name: p.name, sku: p.sku, price: p.price, size: (p.sizes as any)[0] ?? it.size } : it))
     }));
   };
   const setProductBySku = (rowId: number, sku: string) => {
@@ -137,7 +166,7 @@ export default function OrdersDashboard() {
     if (!p) return;
     setOrder((prev) => ({
       ...prev,
-      items: prev.items.map((it) => (it.id === rowId ? { ...it, name: p.name, sku: p.sku, price: p.price, size: (p.sizes as any)[0] ?? it.size } : it)),
+      items: prev.items.map((it) => (it.id === rowId ? { ...it, name: p.name, sku: p.sku, price: p.price, size: (p.sizes as any)[0] ?? it.size } : it))
     }));
   };
   const incQty = (rowId: number) => setOrder((prev) => ({ ...prev, items: prev.items.map((it) => (it.id === rowId ? { ...it, quantity: it.quantity + 1 } : it)) }));
@@ -188,19 +217,59 @@ export default function OrdersDashboard() {
   const end = start + perPage;
   const visibleOrders = filtered.slice(start, end);
 
+  // Тесты (runtime asserts)
   useEffect(() => {
     console.assert(statuses[0] === "NEW", "[TEST] start NEW");
     console.assert(statuses[statuses.length - 1] === "COMPLETED", "[TEST] last COMPLETED");
+    console.assert(statuses.includes("CANCELED"), "[TEST] contains CANCELED");
+    console.assert(statuses.indexOf("SHIPPING") < statuses.indexOf("DELIVERED"), "[TEST] SHIPPING before DELIVERED");
+    const def = normalizeOrder({});
+    console.assert(def.status === "NEW" && def.paymentStatus === "Не оплачен", "[TEST] normalizeOrder defaults");
+    orders.forEach((o) => console.assert(["Оплачен", "Не оплачен"].includes(o.paymentStatus), "[TEST] payment statuses must be 2-way"));
+    console.assert(SELECT_ALL === "__all__", "[TEST] SELECT_ALL sentinel");
+    console.assert(statuses.indexOf(order.status) !== -1, "[TEST] current order status is valid");
+    // Доп. тесты
+    console.assert(products.length > 0, "[TEST] products exist");
+    console.assert(JSON.stringify(sizesForSku("UNKNOWN")) === JSON.stringify(["—"]), "[TEST] sizes fallback for unknown sku");
   }, []);
 
+  // Отображение статуса оплаты: аккуратный текстовый индикатор (без подложки)
   const PaymentStatus = ({ status }: { status: string }) => {
-    const map: Record<string, { cls: string; emoji: string }> = {
-      "Оплачен": { cls: "text-green-600", emoji: "✅" },
-      "Не оплачен": { cls: "text-red-600", emoji: "⛔" },
-      "Частично": { cls: "text-amber-600", emoji: "🟡" },
-    };
-    const conf = map[status] || { cls: "text-gray-600", emoji: "" };
-    return <div className={`text-xs ${conf.cls}`}>{conf.emoji} {status}</div>;
+    const paid = status === "Оплачен";
+    const root = paid ? "inline-flex items-center gap-1 text-xs font-medium text-emerald-700" : "inline-flex items-center gap-1 text-xs font-medium text-rose-700";
+    const dot = paid ? "bg-emerald-600" : "bg-rose-600";
+    const emoji = paid ? "✅" : "⛔";
+    return (
+      <span className={root}>
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`}></span>
+        <span className="-ml-0.5">{emoji}</span>
+        {status}
+      </span>
+    );
+  };
+
+  // Плашки всех статусов для строки таблицы: пройденные — серые, текущий — цветной, будущие — светлые
+  const StatusPills = ({ current }: { current: string }) => {
+    const currentIdx = statuses.indexOf(current);
+    return (
+      <div className="flex flex-wrap gap-1 max-w-[360px]">
+        {statuses.map((s, i) => {
+          const isCurrent = i === currentIdx;
+          const isPast = i < currentIdx;
+          const base = "text-[10px] leading-4 px-2 py-1 rounded-full border";
+          const cls = isCurrent
+            ? "bg-indigo-600 text-white border-indigo-600"
+            : isPast
+            ? "bg-gray-200 text-gray-600 border-gray-300"
+            : "bg-white text-gray-400 border-gray-200";
+          return (
+            <span key={s} className={`${base} ${cls}`} title={s}>
+              {s}
+            </span>
+          );
+        })}
+      </div>
+    );
   };
 
   if (view === "list") {
@@ -268,7 +337,6 @@ export default function OrdersDashboard() {
                     <SelectItem value={SELECT_ALL}>Все</SelectItem>
                     <SelectItem value="Оплачен">Оплачен</SelectItem>
                     <SelectItem value="Не оплачен">Не оплачен</SelectItem>
-                    <SelectItem value="Частично">Частично</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -350,8 +418,8 @@ export default function OrdersDashboard() {
                         <div className="mb-1"><span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">{o.payment}</span></div>
                         <PaymentStatus status={o.paymentStatus} />
                       </td>
-                      <td className="py-3">
-                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">{o.status}</span>
+                      <td className="py-3 align-top">
+                        <StatusPills current={o.status} />
                       </td>
                     </tr>
                   );
@@ -440,7 +508,6 @@ export default function OrdersDashboard() {
                   <SelectContent>
                     <SelectItem value="Оплачен">Оплачен</SelectItem>
                     <SelectItem value="Не оплачен">Не оплачен</SelectItem>
-                    <SelectItem value="Частично">Частично</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -507,7 +574,12 @@ export default function OrdersDashboard() {
               </div>
               <div>
                 <label className="block mb-1 text-gray-600 font-medium">Город</label>
-                <Input value={order.delivery.city} onChange={(e) => updateDelivery("city", e.target.value)} />
+                <Select value={order.delivery.city} onValueChange={(v) => updateDelivery("city", v)}>
+                  <SelectTrigger><SelectValue placeholder="Выберите город" /></SelectTrigger>
+                  <SelectContent>
+                    {cities.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block mb-1 text-gray-600 font-medium">Адрес доставки</label>
@@ -534,9 +606,19 @@ export default function OrdersDashboard() {
         <div className="space-y-8 col-span-2">
           <Card>
             <CardHeader className="px-6 py-4 border-b">
-              <div className="flex items-center justify между w-full">
+              <div className="flex items-center justify-between w-full">
                 <CardTitle>Состав заказа</CardTitle>
-                <Button variant="outline" onClick={addItem}>+ Добавить</Button>
+                <div className="flex items-center gap-2">
+                  {itemsEditMode ? (
+                    <>
+                      <Button variant="outline" onClick={addItem}>+ Добавить</Button>
+                      <Button variant="ghost" onClick={cancelItemsEdit}>Отменить</Button>
+                      <Button onClick={saveItemsEdit}>Сохранить</Button>
+                    </>
+                  ) : (
+                    <Button variant="outline" onClick={beginItemsEdit}>Редактировать</Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -544,7 +626,7 @@ export default function OrdersDashboard() {
                 <thead className="bg-gray-50 text-gray-500 border-b">
                   <tr className="text-left">
                     <th className="px-3 py-3 w-8">#</th>
-                    <th className="px-3 py-3">Название</th>
+                    <th className="py-3 pl-14 pr-3">Название</th>
                     <th>Артикул</th>
                     <th>Размер</th>
                     <th>Количество</th>
@@ -558,41 +640,70 @@ export default function OrdersDashboard() {
                     <tr key={item.id} className="border-b">
                       <td className="px-3 py-3 text-gray-500">{idx + 1}</td>
                       <td className="py-3">
-                        <Select value={item.name} onValueChange={(v) => setProductByName(item.id, v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {products.map((p) => (<SelectItem key={p.sku} value={p.name}>{p.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-3">
-                        <Select value={item.sku} onValueChange={(v) => setProductBySku(item.id, v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {products.map((p) => (<SelectItem key={p.sku} value={p.sku}>{p.sku}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-3">
-                        <Select value={String(item.size)} onValueChange={(v) => updateItem(item.id, "size", v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {sizesForSku(item.sku).map((sz) => (<SelectItem key={String(sz)} value={String(sz)}>{String(sz)}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" onClick={() => decQty(item.id)}>-</Button>
-                          <div className="w-8 text-center">{item.quantity}</div>
-                          <Button variant="outline" size="icon" onClick={() => incQty(item.id)}>+</Button>
+                        <div className="flex items-center gap-3">
+                          <img src={imgForItem(item)} alt="Товар" className="w-10 h-10 rounded-md object-cover border" />
+                          {itemsEditMode ? (
+                            <Select value={item.name || undefined} onValueChange={(v) => setProductByName(item.id, v)}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {products.map((p) => (<SelectItem key={p.sku} value={p.name}>{p.name}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            item.name ? (
+                              <a href={productUrl(item.sku)} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
+                                {item.name}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">Не выбран</span>
+                            )
+                          )}
                         </div>
+                      </td>
+                      <td className="py-3">
+                        {itemsEditMode ? (
+                          <Select value={item.sku || undefined} onValueChange={(v) => setProductBySku(item.id, v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {products.map((p) => (<SelectItem key={p.sku} value={p.sku}>{p.sku}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-gray-700">{item.sku || "—"}</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {itemsEditMode ? (
+                          <Select value={(item.size ? String(item.size) : undefined)} onValueChange={(v) => updateItem(item.id, "size", v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(item.sku ? sizesForSku(item.sku) : ["—"]).map((sz) => (<SelectItem key={String(sz)} value={String(sz)}>{String(sz)}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-gray-700">{item.size || "—"}</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {itemsEditMode ? (
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" onClick={() => decQty(item.id)}>-</Button>
+                            <div className="w-8 text-center">{item.quantity}</div>
+                            <Button variant="outline" size="icon" onClick={() => incQty(item.id)}>+</Button>
+                          </div>
+                        ) : (
+                          <div className="w-8 text-center">{item.quantity}</div>
+                        )}
                       </td>
                       <td className="py-3">{item.price} ₽</td>
                       <td className="py-3">{item.quantity * item.price} ₽</td>
                       <td className="pr-2 py-3 text-right whitespace-nowrap">
-                        <Button variant="ghost" size="icon" onClick={() => setOrder((prev) => ({ ...prev, items: [...prev.items, { ...item, id: Date.now() }] }))}><Copy className="w-4 h-4 text-gray-500 hover:text-gray-800" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}><Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" /></Button>
+                        {itemsEditMode ? (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => setOrder((prev) => ({ ...prev, items: [...prev.items, { ...item, id: Date.now() }] }))}><Copy className="w-4 h-4 text-gray-500 hover:text-gray-800" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}><Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" /></Button>
+                          </>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
