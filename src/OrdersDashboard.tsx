@@ -211,7 +211,45 @@ Email: ${o.client.email}
         </div>
 
         <div className="space-y-8 col-span-2">
-          <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4 border-b"><div className="flex items-center justify-between w-full"><CardTitle>Состав заказа</CardTitle><div className="flex items-center gap-2">{itemsEditMode?(<><Button variant="outline" onClick={addItem}>+ Добавить</Button><Button variant="ghost" onClick={cancelItemsEdit}>Отменить</Button><Button onClick={saveItemsEdit}>Сохранить</Button></>):(<Button variant="outline" onClick={beginItemsEdit}>Редактировать</Button>)}</div></div></CardHeader><CardContent><table className="w-full text-sm border rounded-md overflow-hidden"><thead className="bg-gray-50 text-gray-500 border-b"><tr className="text-left"><th className="px-3 py-3 w-8">#</th><th className="py-3 pl-14 pr-3">Название</th><th>Артикул</th><th>Размер</th><th>Количество</th><th>Цена за ед.</th><th>Сумма</th><th></th></tr></thead><tbody>{order.items.map((item,idx)=>(<tr key={item.id} className="border-b"><td className="px-3 py-3 text-gray-500">{idx+1}</td><td className="px-4 py-3"><div className="flex items-center gap-3"><img src={imgForItem(item)} alt="Товар" className="w-10 h-10 rounded-md object-cover border"/>{itemsEditMode?(<Select value={item.name||undefined} onValueChange={(v)=>setProductByName(item.id,v)}><SelectTrigger><SelectValue placeholder="Выберите товар"/></SelectTrigger><SelectContent>{PRODUCTS.map(p=>(<SelectItem key={p.sku} value={p.name}>{p.name}</SelectItem>))}</SelectContent></Select>):(<a href="#" className="text-indigo-600 hover:underline">{item.name||"—"}</a>)}</div></td><td className="px-2 py-3">{itemsEditMode?(<Select value={item.sku||undefined} onValueChange={(v)=>setProductBySku(item.id,v)}><SelectTrigger><SelectValue placeholder="SKU"/></SelectTrigger><SelectContent>{PRODUCTS.map(p=>(<SelectItem key={p.sku} value={p.sku}>{p.sku}</SelectItem>))}</SelectContent></Select>):(<span>{item.sku||"—"}</span>)}</td><td className="px-2 py-3">{itemsEditMode?(<Select value={item.size?String(item.size):undefined} onValueChange={(v)=>updateItem(item.id,"size",v)}><SelectTrigger><SelectValue placeholder="Размер"/></SelectTrigger><SelectContent>{sizesForSku(item.sku).map(s=>(<SelectItem key={String(s)} value={String(s)}>{String(s)}</SelectItem>))}</SelectContent></Select>):(<span>{String(item.size||"—")}</span>)}</td><td className="px-2 py-3"><div className="inline-flex items-center gap-2"><Button variant="outline" size="icon" onClick={()=>decQty(item.id)}>-</Button><span className="w-6 text-center">{item.quantity}</span><Button variant="outline" size="icon" onClick={()=>incQty(item.id)}>+</Button></div></td><td className="px-2 py-3">{item.price} ₽</td><td className="px-2 py-3 font-medium">{item.price*item.quantity} ₽</td><td className="px-2 py-3 text-right">{itemsEditMode?(<div className="inline-flex gap-2"><Button variant="outline" size="sm" onClick={()=>cloneItem(item.id)}>Дубль</Button><Button variant="destructive" size="sm" onClick={()=>removeItem(item.id)}>Удалить</Button></div>):null}</td></tr>))}</tbody></table></CardContent></Card>
+          <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4 border-b"><div className="flex items-center justify-between w-full"><CardTitle>Состав заказа</CardTitle><div className="flex items-center gap-2">{itemsEditMode?(<><Button variant="outline" onClick={addItem}>+ Добавить</Button><Button variant="ghost" onClick={cancelItemsEdit}>Отменить</Button><Button onClick={saveItemsEdit}>Сохранить</Button></>):(<Button variant="outline" onClick={beginItemsEdit}>Редактировать</Button>)}</div></div></CardHeader><CardContent><table className="w-full text-sm border rounded-md overflow-hidden"><thead className="bg-gray-50 text-gray-500 border-b"><tr className="text-left"><th className="px-3 py-3 w-8">#</th><th className="py-3 pl-14 pr-3">Название</th><th>Артикул</th><th>Размер</th><th>Количество</th><th>Цена за ед.</th><th>Сумма</th><th></th></tr></thead><tbody>{order.items.map((item,idx)=>(<tr key={item.id} className="border-b"><td className="px-3 py-3 text-gray-500">{idx+1}</td><td className="px-4 py-3"><div className="flex items-center gap-3"><img src={imgForItem(item)} alt="Товар" className="w-10 h-10 rounded-md object-cover border"/>{itemsEditMode?(<Select value={item.name||undefined} onValueChange={(v)=>setProductByName(item.id,v)}><SelectTrigger><SelectValue placeholder="Выберите товар"/></SelectTrigger><SelectContent>{PRODUCTS.map(p=>(<SelectItem key={p.sku} value={p.name}>{p.name}</SelectItem>))}</SelectContent></Select>):(<a href="#" className="text-indigo-600 hover:underline">{item.name||"—"}</a>)}</div></td><td className="px-2 py-3">{itemsEditMode?(<Select value={item.sku||undefined} onValueChange={(v)=>setProductBySku(item.id,v)}><SelectTrigger><SelectValue placeholder="SKU"/></SelectTrigger><SelectContent>{PRODUCTS.map(p=>(<SelectItem key={p.sku} value={p.sku}>{p.sku}</SelectItem>))}</SelectContent></Select>):(<span>{item.sku||"—"}</span>)}</td><td className="px-2 py-3">{itemsEditMode?(<Select value={item.size?String(item.size):undefined} onValueChange={(v)=>updateItem(item.id,"size",v)}><SelectTrigger><SelectValue placeholder="Размер"/></SelectTrigger><SelectContent>{sizesForSku(item.sku).map(s=>(<SelectItem key={String(s)} value={String(s)}>{String(s)}</SelectItem>))}</SelectContent></Select>):(<span>{String(item.size||"—")}</span>)}</td><td className="px-2 py-3">
+  {itemsEditMode ? (
+    <div className="inline-flex items-center gap-2">
+      <Button variant="outline" size="icon" onClick={() => decQty(item.id)}>-</Button>
+      <span className="w-6 text-center">{item.quantity}</span>
+      <Button variant="outline" size="icon" onClick={() => incQty(item.id)}>+</Button>
+    </div>
+  ) : (
+    <span className="inline-block min-w-10 px-2 py-1 text-center rounded-md border bg-gray-50 text-gray-800">{item.quantity}</span>
+  )}
+</td><td className="px-2 py-3">{item.price} ₽</td><td className="px-2 py-3 font-medium">{item.price*item.quantity} ₽</td><td className="px-2 py-3 text-right">{itemsEditMode?(<div className="inline-flex gap-2"><Button variant="outline" size="sm" onClick={()=>cloneItem(item.id)}>Дубль</Button><Button variant="destructive" size="sm" onClick={()=>removeItem(item.id)}>Удалить</Button></div>):null}</td></tr>))}</tbody></table>
+
+{/* Итоги под таблицей */}
+{(() => {
+  const qty = order.items.reduce((a,i)=>a+i.quantity,0);
+  const subtotal = order.items.reduce((a,i)=>a+i.price*i.quantity,0);
+  const discount = Number(order.discount||0);
+  const shipping = Number(order.delivery.cost||0);
+  const total = subtotal - discount + shipping;
+  return (
+    <div className="flex justify-end">
+      <div className="mt-4 w-full sm:w-auto">
+        <div className="grid grid-cols-[1fr_auto] gap-x-8 gap-y-1 text-sm">
+          <div className="text-gray-600">Позиций:</div><div className="text-right tabular-nums">{qty}</div>
+          <div className="text-gray-600">Сумма товаров:</div><div className="text-right tabular-nums">{subtotal} ₽</div>
+          <div className="text-gray-600">Скидка:</div><div className="text-right tabular-nums text-green-600">−{discount} ₽</div>
+          <div className="text-gray-600">Доставка:</div><div className="text-right tabular-nums">{shipping} ₽</div>
+        </div>
+        <div className="h-px my-3 bg-gray-200" />
+        <div className="flex items-baseline justify-end gap-8">
+          <div className="text-base font-semibold text-gray-900">Итого:</div>
+          <div className="text-base font-semibold text-gray-900 tabular-nums">{total} ₽</div>
+        </div>
+      </div>
+    </div>
+  );
+})()}
+
+</CardContent></Card>
         </div>
       </div>
     </div>
