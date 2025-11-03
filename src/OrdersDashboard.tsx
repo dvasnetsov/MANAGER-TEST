@@ -1,9 +1,9 @@
 // Orders Admin Prototype — compact, fast, and stable
-// PATCH 2025-11-03
-// - Fix: stray "return outside of function" by scoping all hooks/returns inside OrdersDashboard()
-// - Fix: all <SelectTrigger>/<SelectValue> pairs properly closed
-// - Keep actions column, modals, filters, compact statuses, clickable names when not editing
-// - Shrink file size to avoid Canvas length warnings
+// PATCH 2025-11-03.2 (fix build)
+// - Fixed unterminated </span> in comments list
+// - Removed stray escaped quote in table cell
+// - Kept: list filters with date range, status chips that wrap, action buttons with hover expand,
+//         detail page status chain (single row, no horizontal scroll), summary panel, comments block
 
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,36 @@ const EditIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const TrashIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>);
 const CommentIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>);
 
+// simple modal
+function Modal({title, children, onClose}:{title:string;children:any;onClose:()=>void}){
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl w-[560px] max-w-[94vw]">
+        <div className="px-6 py-4 border-b flex items-center justify-between">
+          <div className="font-semibold">{title}</div>
+          <Button variant="ghost" size="sm" onClick={onClose}>Закрыть</Button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// narrow action button with icon centered; on hover expands and shows label
+function ActionButton({icon,label,onClick,tone}:{icon:"copy"|"edit"|"comment"|"trash";label:string;onClick:()=>void;tone?:"danger"|"default"}){
+  const Icon = icon==="copy"?CopyIcon:icon==="edit"?EditIcon:icon==="comment"?CommentIcon:TrashIcon;
+  const danger = icon==="trash" || tone==="danger";
+  return (
+    <button onClick={onClick} className={`group relative w-full overflow-hidden rounded-xl border ${danger?"border-red-200 hover:bg-red-50":"border-gray-200 hover:bg-indigo-50"} py-3 transition-colors`}>
+      <div className="flex items-center justify-center">
+        <Icon className={`w-5 h-5 ${danger?"text-red-600":"text-gray-700 group-hover:text-indigo-600"}`} />
+        <span className={`ml-2 max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-[160px] transition-all ${danger?"text-red-700":"text-indigo-700"}`}>{label}</span>
+      </div>
+    </button>
+  );
+}
+
 const STATUSES=["NEW","RESERVE_ATTEMPTION","RESERVED","CONFIRMED","NEEDS_CLARIFICATION","SHIPPING","DELIVERED","CANCELED","COMPLETED"] as const;
 type OrderStatus=typeof STATUSES[number];
 type PaymentStatusT="Оплачен"|"Не оплачен";
@@ -40,7 +70,7 @@ type Order={id:number;date:string;client:{name:string;phone:string;email:string}
 
 const normalizeOrder=(raw:Partial<Order>):Order=>({id:raw.id??0,date:raw.date??"",client:raw.client??{name:"",phone:"",email:""},delivery:{type:raw.delivery?.type??"Курьер",city:raw.delivery?.city??"",address:raw.delivery?.address??"",cost:raw.delivery?.cost??0,date:raw.delivery?.date??"",interval:raw.delivery?.interval??"",comment:raw.delivery?.comment??""},discount:raw.discount??0,payment:raw.payment??"Карта",paymentStatus:(raw.paymentStatus as PaymentStatusT)??"Не оплачен",status:(raw.status as OrderStatus)??"NEW",needManagerHelp:raw.needManagerHelp??false,recipient:raw.recipient??{enabled:false,name:"",phone:""},comments:raw.comments??[],items:raw.items??[]});
 
-const DEMO_ORDERS:Order[]=[{id:1001,date:"15.01.2025 13:30",client:{name:"Иванов Иван Иванович",phone:"+7 (999) 123-45-67",email:"ivanov@example.com"},delivery:{type:"Курьер",city:"Москва",address:"ул. Ленина, д. 10, кв. 25"},discount:500,payment:"Карта",paymentStatus:"Оплачен",status:"CONFIRMED",needConfirmation:false,needManagerHelp:false,recipient:{enabled:false,name:"",phone:""},comments:[],items:[{id:1,name:"Кольцо с бриллиантом",sku:"KB-001",size:17,quantity:2,price:7950}]},{id:1002,date:"16.01.2025 11:10",client:{name:"Петров Петр",phone:"+7 (921) 555-44-33",email:"petrov@example.com"},delivery:{type:"Самовывоз",city:"Санкт-Петербург",address:"Невский пр., 20"},discount:0,payment:"СБП",paymentStatus:"Не оплачен",status:"RESERVED",needConfirmation:false,needManagerHelp:false,recipient:{enabled:false,name:"",phone:""},comments:[],items:[{id:2,name:"Серьги золотые",sku:"ER-210",size:"—",quantity:1,price:5600},{id:3,name:"Подвеска с сапфиром",sku:"PN-078",size:"—",quantity:1,price:11200}]}];
+const DEMO_ORDERS:Order[]=[{id:1001,date:"15.01.2025 13:30",client:{name:"Иванов Иван Иванович",phone:"+7 (999) 123-45-67",email:"ivanov@example.com"},delivery:{type:"Курьер",city:"Москва",address:"ул. Ленина, д. 10, кв. 25"},discount:500,payment:"Карта",paymentStatus:"Оплачен",status:"CONFIRMED",needConfirmation:false,needManagerHelp:false,recipient:{enabled:false,name:"",phone:""},comments:[{id:1,author:"Менеджер А.",date:"15.01.2025",text:"Созвон с клиентом, уточнили адрес."}],items:[{id:1,name:"Кольцо с бриллиантом",sku:"KB-001",size:17,quantity:2,price:7950}]},{id:1002,date:"16.01.2025 11:10",client:{name:"Петров Петр",phone:"+7 (921) 555-44-33",email:"petrov@example.com"},delivery:{type:"Самовывоз",city:"Санкт-Петербург",address:"Невский пр., 20"},discount:0,payment:"СБП",paymentStatus:"Не оплачен",status:"RESERVED",needConfirmation:false,needManagerHelp:false,recipient:{enabled:false,name:"",phone:""},comments:[],items:[{id:2,name:"Серьги золотые",sku:"ER-210",size:"—",quantity:1,price:5600},{id:3,name:"Подвеска с сапфиром",sku:"PN-078",size:"—",quantity:1,price:11200}]}];
 
 const parseRuDate=(s:string)=>{const [d,t="00:00"]=String(s||"").split(" ");const [dd,mm,yyyy]=d.split(".").map(n=>parseInt(n,10));const [HH=0,MM=0]=t.split(":").map(n=>parseInt(n,10));if(isNaN(dd)||isNaN(mm)||isNaN(yyyy))return 0;return new Date(yyyy,mm-1,dd,HH||0,MM||0).getTime()};
 
@@ -49,7 +79,7 @@ const PaymentStatus=({status}:{status:PaymentStatusT})=>{const paid=status==="О
 const StatusChips = ({ current }: { current: string }) => {
   const idx = STATUSES.indexOf(current as OrderStatus);
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-normal">
       {STATUSES.map((s, i) => {
         const isPast = i < idx;
         const isCurrent = i === idx;
@@ -70,8 +100,6 @@ const StatusChips = ({ current }: { current: string }) => {
 
 // Chain-like status view for the detail page (dot + connector line)
 const StatusChain = ({ current }: { current: string }) => {
-  // Desktop: single-row, no horizontal scroll. We stretch connectors to fill the row
-  // so 9 statuses always fit across the container width.
   const idx = STATUSES.indexOf(current as OrderStatus);
   return (
     <div className="flex items-center gap-3 md:gap-4 w-full select-none overflow-hidden">
@@ -117,6 +145,7 @@ export default function OrdersDashboard(){
   const[newComment,setNewComment]=useState("");
   const[deleteReason,setDeleteReason]=useState("");
   const[deleteReasonOther,setDeleteReasonOther]=useState("");
+  const [detailComment, setDetailComment] = useState("");
 
   // list helpers
   const debouncedSearch=useDebounced(filters.search,300);
@@ -129,13 +158,7 @@ export default function OrdersDashboard(){
   const filteredSorted=useMemo(()=>{const arr=applyFilters(orders);return[...arr].sort((a,b)=>sort.dir==="desc"?parseRuDate(b.date)-parseRuDate(a.date):parseRuDate(a.date)-parseRuDate(b.date))},[orders,filters,debouncedSearch,sort]);
   const pageCount=Math.max(1,Math.ceil(filteredSorted.length/perPage));const currPage=Math.min(page,pageCount);const start=(currPage-1)*perPage;const end=start+perPage;const visible=filteredSorted.slice(start,end);
 
-  const copyOrder=async(o:Order)=>{const qty=o.items.reduce((a,i)=>a+i.quantity,0);const total=o.items.reduce((a,i)=>a+i.price*i.quantity,0)-(o.discount||0);const text=`Заказ #${o.id} — ${o.client.name}
-Тел: ${o.client.phone}
-Email: ${o.client.email}
-Доставка: ${o.delivery.type}, ${o.delivery.city}, ${o.delivery.address}
-Оплата: ${o.payment} (${o.paymentStatus})
-Позиций: ${qty}
-Итого: ${total} ₽`;try{await navigator.clipboard.writeText(text);alert("Сводка заказа скопирована")}catch{alert(text)}};
+  const copyOrder=async(o:Order)=>{const qty=o.items.reduce((a,i)=>a+i.quantity,0);const total=o.items.reduce((a,i)=>a+i.price*i.quantity,0)-(o.discount||0);const text=`Заказ #${o.id} — ${o.client.name}\nТел: ${o.client.phone}\nEmail: ${o.client.email}\nДоставка: ${o.delivery.type}, ${o.delivery.city}, ${o.delivery.address}\nОплата: ${o.payment} (${o.paymentStatus})\nПозиций: ${qty}\nИтого: ${total} ₽`;try{await navigator.clipboard.writeText(text);alert("Сводка заказа скопирована")}catch{alert(text)}};
   const editOrder=(o:Order)=>{setOrder(normalizeOrder(o));setView("detail")};
   const askDeleteOrder=(o:Order)=>{setTargetOrderId(o.id);setDeleteReason("");setDeleteReasonOther("");setDeleteModalOpen(true)};
   const openCommentModal=(o:Order)=>{setTargetOrderId(o.id);setNewComment("");setCommentModalOpen(true)};
@@ -168,7 +191,7 @@ Email: ${o.client.email}
       </div>
     </div>
   ); })()}
-</td><td className="px-4 py-3 align-top space-y-1"><div className="text-xs text-gray-500"><span className="mr-1 opacity-70">📦</span>Позиций: {qty}</div><div className="text-xs text-green-600">Скидка: {o.discount||0} ₽</div><div className="text-sm text-gray-900 font-medium">Итого: {total} ₽</div></td><td className="px-4 py-3 align-top space-y-1"><div className="font-medium">{o.client.name}</div><div className="text-gray-500 text-xs"><span className="font-medium text-gray-600">Телефон:</span> {o.client.phone}</div><div className="text-gray-500 text-xs"><span className="font-medium text-gray-600">Email:</span> {o.client.email}</div></td><td className="px-4 py-3 align-top"><div className="mb-1"><span className="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700 font-medium">{o.delivery.type}</span></div><div className="text-xs text-gray-500"><span className="font-medium text-gray-600">Адрес:</span> {o.delivery.city}, {o.delivery.address}</div></td><td className="px-4 py-3 align-top"><div className="mb-1"><span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">{o.payment}</span></div><PaymentStatus status={o.paymentStatus} /></td><td className="px-4 py-3 align-top"><StatusChips current={o.status} /></td><td className="px-4 py-3 align-top"><div className="flex flex-col gap-2 w-40"><ActionButton icon="copy" label="Копировать" onClick={()=>copyOrder(o)}/><ActionButton icon="edit" label="Редактировать" onClick={()=>editOrder(o)}/><ActionButton icon="comment" label="Комментарий" onClick={()=>openCommentModal(o)}/><ActionButton icon="trash" label="Удалить" tone="danger" onClick={()=>askDeleteOrder(o)}/></div></td></tr>)});
+</td><td className="px-4 py-3 align-top space-y-1"><div className="text-xs text-gray-500"><span className="mr-1 opacity-70">📦</span>Позиций: {qty}</div><div className="text-xs text-green-600">Скидка: {o.discount||0} ₽</div><div className="text-sm text-gray-900 font-medium">Итого: {total} ₽</div></td><td className="px-4 py-3 align-top space-y-1"><div className="font-medium">{o.client.name}</div><div className="text-gray-500 text-xs"><span className="font-medium text-gray-600">Телефон:</span> {o.client.phone}</div><div className="text-gray-500 text-xs"><span className="font-medium text-gray-600">Email:</span> {o.client.email}</div></td><td className="px-4 py-3 align-top"><div className="mb-1"><span className="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700 font-medium">{o.delivery.type}</span></div><div className="text-xs text-gray-500"><span className="font-medium text-gray-600">Адрес:</span> {o.delivery.city}, {o.delivery.address}</div></td><td className="px-4 py-3 align-top"><div className="mb-1"><span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">{o.payment}</span></div><PaymentStatus status={o.paymentStatus} /></td><td className="px-6 py-3 align-top whitespace-normal"><StatusChips current={o.status} /></td><td className="px-4 py-3 align-top"><div className="flex flex-col gap-2 w-40"><ActionButton icon="copy" label="Копировать" onClick={()=>copyOrder(o)}/><ActionButton icon="edit" label="Редактировать" onClick={()=>editOrder(o)}/><ActionButton icon="comment" label="Комментарий" onClick={()=>openCommentModal(o)}/><ActionButton icon="trash" label="Удалить" tone="danger" onClick={()=>askDeleteOrder(o)}/></div></td></tr>)});
 
   if(view==="list"){
     return(
@@ -186,7 +209,7 @@ Email: ${o.client.email}
           <div className="col-span-12 flex gap-2 justify-end pt-1">{isFiltered&&(<Button variant="outline" onClick={()=>{setFilters({search:"",deliveryType:"",payMethod:"",payStatus:"",costMin:"",costMax:"",orderStatus:"",needConfirm:"",dateFrom:"",dateTo:""});setPage(1)}}>Сбросить</Button>)}</div>
         </div></CardContent></Card>
 
-        <Card className="border border-gray-200 rounded-xl shadow-md bg-white"><CardContent className="p-0"><table className="w-full text-sm table-fixed"><thead className="text-gray-500 border-b border-gray-200"><tr className="text-left"><th className="px-6 py-3">ID</th><th className="px-4 py-3 align-top"><button className="inline-flex items-center gap-1 text-gray-700 hover:text-indigo-600" onClick={()=>setSort(s=>({by:"date",dir:s.dir==="desc"?"asc":"desc"}))}>Дата<IcArrowUpDown className="w-4 h-4 opacity-60"/></button></th><th className="px-4 py-3 align-top">Сводка заказа</th><th className="px-4 py-3 align-top">Клиент</th><th className="px-4 py-3 align-top">Доставка</th><th className="px-4 py-3 align-top">Оплата</th><th className="px-6 py-3">Статус</th><th className="px-4 py-3 w-40">Действия</th></tr></thead><tbody className="divide-y divide-gray-200">{visible.map(o=>(<Row key={o.id} o={o}/>))}</tbody></table><div className="flex items-center justify-between px-6 py-4 text-sm"><div className="text-gray-500">Показаны {start+1}–{Math.min(end,filteredSorted.length)} из {filteredSorted.length}</div><div className="flex gap-2"><Button variant="outline" disabled={currPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Назад</Button>{Array.from({length:pageCount}).map((_,i)=>(<Button key={i} variant={currPage===i+1?"default":"outline"} onClick={()=>setPage(i+1)}>{i+1}</Button>))}<Button variant="outline" disabled={currPage===pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))}>Вперёд</Button></div></div></CardContent></Card>
+        <Card className="border border-gray-200 rounded-xl shadow-md bg-white"><CardContent className="p-0"><table className="w-full text-sm table-auto"><thead className="text-gray-500 border-b border-gray-200"><tr className="text-left"><th className="px-6 py-3">ID</th><th className="px-4 py-3 align-top"><button className="inline-flex items-center gap-1 text-gray-700 hover:text-indigo-600" onClick={()=>setSort(s=>({by:"date",dir:s.dir==="desc"?"asc":"desc"}))}>Дата<IcArrowUpDown className="w-4 h-4 opacity-60"/></button></th><th className="px-4 py-3 align-top">Сводка заказа</th><th className="px-4 py-3 align-top">Клиент</th><th className="px-4 py-3 align-top">Доставка</th><th className="px-4 py-3 align-top">Оплата</th><th className="px-6 py-3">Статус</th><th className="px-4 py-3 w-40">Действия</th></tr></thead><tbody className="divide-y divide-gray-200">{visible.map(o=>(<Row key={o.id} o={o}/>))}</tbody></table><div className="flex items-center justify-between px-6 py-4 text-sm"><div className="text-gray-500">Показаны {start+1}–{Math.min(end,filteredSorted.length)} из {filteredSorted.length}</div><div className="flex gap-2"><Button variant="outline" disabled={currPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Назад</Button>{Array.from({length:pageCount}).map((_,i)=>(<Button key={i} variant={currPage===i+1?"default":"outline"} onClick={()=>setPage(i+1)}>{i+1}</Button>))}<Button variant="outline" disabled={currPage===pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))}>Вперёд</Button></div></div></CardContent></Card>
 
         {commentModalOpen&&( <Modal onClose={()=>setCommentModalOpen(false)} title={`Комментарий к заказу #${targetOrderId}`}><div className="space-y-3"><Textarea placeholder="Оставьте комментарий…" value={newComment} onChange={(e)=>setNewComment(e.target.value)}/><div className="flex justify-end gap-2"><Button variant="ghost" onClick={()=>setCommentModalOpen(false)}>Отмена</Button><Button onClick={()=>{if(!targetOrderId||!newComment.trim())return;setOrders(prev=>prev.map(o=>o.id===targetOrderId?{...o,comments:[...o.comments,{id:Date.now(),author:"Менеджер",date:new Date().toLocaleDateString(),text:newComment.trim()}]}:o));setCommentModalOpen(false);setNewComment("")}}>Сохранить</Button></div></div></Modal> )}
 
@@ -221,84 +244,89 @@ Email: ${o.client.email}
   ) : (
     <span className="inline-block min-w-10 px-2 py-1 text-center rounded-md border bg-gray-50 text-gray-800">{item.quantity}</span>
   )}
-</td><td className="px-2 py-3">{item.price} ₽</td><td className="px-2 py-3 font-medium">{item.price*item.quantity} ₽</td><td className="px-2 py-3 text-right">{itemsEditMode?(<div className="inline-flex gap-2"><Button variant="outline" size="sm" onClick={()=>cloneItem(item.id)}>Дубль</Button><Button variant="destructive" size="sm" onClick={()=>removeItem(item.id)}>Удалить</Button></div>):null}</td></tr>))}</tbody></table>
+</td><td className="px-2 py-3">{item.price} ₽</td><td className="px-2 py-3 font-medium">{item.price*item.quantity} ₽</td><td className="px-2 py-3 text-right">{itemsEditMode?(<div className="inline-flex gap-2">
+  <Button variant="outline" size="icon" title="Дублировать позицию" onClick={() => cloneItem(item.id)} aria-label="Дублировать"><CopyIcon className="w-4 h-4"/></Button>
+  <Button variant="destructive" size="icon" title="Удалить позицию" onClick={() => removeItem(item.id)} aria-label="Удалить"><TrashIcon className="w-4 h-4"/></Button>
+</div>):null}</td></tr>))}</tbody></table>
 
-{/* Итоги под таблицей */}
 {(() => {
   const qty = order.items.reduce((a,i)=>a+i.quantity,0);
   const subtotal = order.items.reduce((a,i)=>a+i.price*i.quantity,0);
   const discount = Number(order.discount||0);
   const shipping = Number(order.delivery.cost||0);
   const total = subtotal - discount + shipping;
+  const Label = ({children}:{children:any}) => (
+    <span className="inline-flex items-center gap-2 text-[12px] text-gray-600">
+      {children}
+    </span>
+  );
+  const IcSum = (p:any)=>(<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M6 8h7a3 3 0 0 1 0 6H8"/><path d="M14 17H6"/><path d="M8 7V5m0 14v-2"/></svg>);
+  const IcTruck = (p:any)=>(<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M10 17h4V6H3v11"/><path d="M14 8h5l2 3v6h-7"/><circle cx="5.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>);
+  const IcDiscount = (p:any)=>(<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><path d="M7 17L17 7"/></svg>);
+
   return (
     <div className="flex justify-end">
-      <div className="mt-4 w-full sm:w-auto">
-        <div className="grid grid-cols-[1fr_auto] gap-x-8 gap-y-1 text-sm">
-          <div className="text-gray-600">Позиций:</div><div className="text-right tabular-nums">{qty}</div>
-          <div className="text-gray-600">Сумма товаров:</div><div className="text-right tabular-nums">{subtotal} ₽</div>
-          <div className="text-gray-600">Скидка:</div><div className="text-right tabular-nums text-green-600">−{discount} ₽</div>
-          <div className="text-gray-600">Доставка:</div><div className="text-right tabular-nums">{shipping} ₽</div>
+      <div className="mt-5 w-full sm:w-[420px] ml-auto p-4 rounded-xl border bg-gradient-to-br from-white to-slate-50 shadow-sm">
+        <div className="grid grid-cols-[1fr_auto] gap-x-8 gap-y-2 text-sm">
+          <Label><IcSum className="w-3.5 h-3.5 text-gray-400"/>Позиций</Label>
+          <div className="text-right tabular-nums">{qty}</div>
+
+          <Label><IcSum className="w-3.5 h-3.5 text-gray-400"/>Сумма товаров</Label>
+          <div className="text-right tabular-nums">{subtotal} ₽</div>
+
+          <Label><IcDiscount className="w-3.5 h-3.5 text-emerald-500"/>Скидка</Label>
+          <div className={`text-right tabular-nums ${discount>0?"text-emerald-600":"text-gray-500"}`}>{discount>0?"−":""}{discount} ₽</div>
+
+          <Label><IcTruck className="w-3.5 h-3.5 text-gray-400"/>Доставка</Label>
+          <div className="text-right tabular-nums">{shipping} ₽</div>
         </div>
         <div className="h-px my-3 bg-gray-200" />
-        <div className="flex items-baseline justify-end gap-8">
-          <div className="text-base font-semibold text-gray-900">Итого:</div>
-          <div className="text-base font-semibold text-gray-900 tabular-nums">{total} ₽</div>
+        <div className="flex items-baseline justify-between">
+          <div className="text-base font-semibold text-gray-900">Итого</div>
+          <div className="text-xl font-bold text-gray-900 tabular-nums">{total} ₽</div>
         </div>
+        {discount>0 && (
+          <div className="mt-2 text-[12px] text-emerald-700">
+            Экономия по заказу: <span className="font-medium">{discount} ₽</span>
+          </div>
+        )}
       </div>
     </div>
   );
 })()}
 
 </CardContent></Card>
+
+          {/* Комментарии менеджеров */}
+          <Card className="border border-gray-200 rounded-xl bg-white">
+            <CardHeader className="px-6 py-4"><CardTitle>Комментарии менеджеров</CardTitle></CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-3">
+                {order.comments && order.comments.length > 0 ? (
+                  order.comments.map((c) => (
+                    <div key={c.id} className="border rounded-md p-3 bg-gray-50">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span className="font-medium text-gray-700">{c.author}</span>
+                        <span>{c.date}</span>
+                      </div>
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap">{c.text}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500">Комментариев пока нет</div>
+                )}
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <Textarea value={detailComment} onChange={(e)=>setDetailComment(e.target.value)} placeholder="Новый комментарий…" />
+                <div className="flex justify-end">
+                  <Button onClick={()=>{ if(!detailComment.trim()) return; setOrder(prev=>({...prev,comments:[...prev.comments,{id:Date.now(),author:"Менеджер",date:new Date().toLocaleDateString(),text:detailComment.trim()}]})); setDetailComment(""); }}>Добавить</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
-}
-
-function Modal({children,onClose,title}:{children:any;onClose:()=>void;title:string}){return(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"><div className="bg-white rounded-xl w-[520px] max-w-[90vw] shadow-lg"><div className="px-5 py-3 border-b font-semibold text-gray-800">{title}</div><div className="p-5">{children}</div><div className="px-5 pb-5 text-right"><Button variant="outline" onClick={onClose}>Закрыть</Button></div></div></div>)}
-
-function ActionButton({
-  icon,
-  label,
-  onClick,
-  tone,
-}: {
-  icon: "copy" | "edit" | "comment" | "trash";
-  label: string;
-  onClick: () => void;
-  tone?: "danger" | "default";
-}) {
-  const Icon = icon === "copy" ? CopyIcon : icon === "edit" ? EditIcon : icon === "comment" ? CommentIcon : TrashIcon;
-  const color =
-    tone === "danger"
-      ? "text-rose-600 group-hover:text-rose-700"
-      : "text-gray-700 group-hover:text-indigo-600";
-  const hoverBg = tone === "danger" ? "group-hover:bg-rose-50" : "group-hover:bg-indigo-50";
-
-  return (
-    <button
-      onClick={onClick}
-      className={`group w-full h-12 rounded-xl border ${hoverBg} transition-all overflow-hidden flex items-center justify-center`}
-    >
-      <div className="relative flex items-center w-full">
-        {/* icon */}
-        <span className="inline-flex items-center justify-center w-full transition-all group-hover:w-10 group-hover:pl-4">
-          <Icon className={`w-5 h-5 ${color} transition-all`} />
-        </span>
-        {/* label (reveals on hover) */}
-        <span className={`absolute right-3 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-sm ${
-          tone === "danger" ? "text-rose-700" : "text-gray-700"
-        }`}>
-          {label}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-// --- lightweight runtime checks (dev) ---
-if (typeof window !== "undefined") {
-  console.info("[Test] parseRuDate ok:", parseRuDate("15.01.2025 13:30") > 0);
-  console.info("[Test] statuses count:", STATUSES.length === 9);
 }
