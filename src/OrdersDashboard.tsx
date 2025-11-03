@@ -1,7 +1,8 @@
 // Orders Admin Prototype — compact, fast, and stable
-// PATCH 2025-11-03.2 (fix build)
+// PATCH 2025-11-03.4 (fix build - remove escaped quotes in JSX attributes)
 // - Fixed unterminated </span> in comments list
 // - Removed stray escaped quote in table cell
+// - Removed incorrect escaped quotes in "Reset filters" button JSX
 // - Kept: list filters with date range, status chips that wrap, action buttons with hover expand,
 //         detail page status chain (single row, no horizontal scroll), summary panel, comments block
 
@@ -23,6 +24,8 @@ const CopyIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const EditIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>);
 const TrashIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>);
 const CommentIcon=(p:any)=>(<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>);
+
+const IcBroom=(p:any)=>(<svg viewBox="0 0 24 24" width="1em" height="1em" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}><path d="M22 2L16 8"/><path d="M12 12L2 22"/><path d="M16 8l-4 4"/><path d="M14 14l-4-4"/><path d="M2 22l6-2 4-4-2-2-4 4-2 6z"/></svg>);
 
 // simple modal
 function Modal({title, children, onClose}:{title:string;children:any;onClose:()=>void}){
@@ -198,16 +201,97 @@ export default function OrdersDashboard(){
       <div className="p-10 bg-gray-50 min-h-screen space-y-12">
         <div className="flex items-center justify-between gap-4"><h1 className="text-2xl font-bold text-gray-900">Управление заказами</h1><div className="flex items-center gap-2"><div className="relative flex items-center">{searchOpen&&(<Input autoFocus value={filters.search} onChange={(e)=>{setFilters({...filters,search:e.target.value});setPage(1)}} placeholder="Поиск: ID, клиент, телефон, email..." className="w-64 mr-2 h-9"/>)}<Button variant="outline" size="icon" onClick={()=>setSearchOpen(v=>!v)} title="Поиск"><IcSearch className="w-4 h-4"/></Button></div></div></div>
 
-        <Card className="border border-gray-200 rounded-xl shadow-md bg-white"><CardContent className="p-6"><div className="grid grid-cols-12 gap-2 items-end text-sm">
-          <div className="col-span-3"><label className="block text-[11px] text-gray-500 mb-1">Дата</label><div className="flex items-center gap-2"><Input type="date" className="h-9" value={filters.dateFrom} onChange={(e)=>{setFilters({...filters,dateFrom:e.target.value});setPage(1)}}/><span className="text-gray-400">—</span><Input type="date" className="h-9" value={filters.dateTo} onChange={(e)=>{setFilters({...filters,dateTo:e.target.value});setPage(1)}}/></div></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Тип доставки</label><Select value={filters.deliveryType||undefined} onValueChange={(v)=>{setFilters({...filters,deliveryType:v===ALL?"":v});setPage(1)}}><SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger><SelectContent><SelectItem value={ALL}>Все</SelectItem><SelectItem value="Курьер">Курьер</SelectItem><SelectItem value="Самовывоз">Самовывоз</SelectItem><SelectItem value="СДЭК">СДЭК</SelectItem></SelectContent></Select></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Способ оплаты</label><Select value={filters.payMethod||undefined} onValueChange={(v)=>{setFilters({...filters,payMethod:v===ALL?"":v});setPage(1)}}><SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger><SelectContent><SelectItem value={ALL}>Все</SelectItem><SelectItem value="Карта">Банковская карта</SelectItem><SelectItem value="СБП">СБП</SelectItem><SelectItem value="Кредит">Кредит</SelectItem><SelectItem value="Рассрочка">Рассрочка</SelectItem></SelectContent></Select></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Статус оплаты</label><Select value={filters.payStatus||undefined} onValueChange={(v)=>{setFilters({...filters,payStatus:v===ALL?"":v});setPage(1)}}><SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger><SelectContent><SelectItem value={ALL}>Все</SelectItem><SelectItem value="Оплачен">Оплачен</SelectItem><SelectItem value="Не оплачен">Не оплачен</SelectItem></SelectContent></Select></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Стоимость</label><div className="flex items-center gap-2"><Input className="h-9" placeholder="от" value={filters.costMin} onChange={(e)=>{setFilters({...filters,costMin:e.target.value});setPage(1)}}/><span className="text-gray-400">—</span><Input className="h-9" placeholder="до" value={filters.costMax} onChange={(e)=>{setFilters({...filters,costMax:e.target.value});setPage(1)}}/></div></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Нужно подтверждение</label><Select value={filters.needConfirm||undefined} onValueChange={(v)=>{setFilters({...filters,needConfirm:v===ALL?"":v});setPage(1)}}><SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger><SelectContent><SelectItem value={ALL}>Все</SelectItem><SelectItem value="yes">Да</SelectItem><SelectItem value="no">Нет</SelectItem></SelectContent></Select></div>
-          <div className="col-span-2"><label className="block text-[11px] text-gray-500 mb-1">Статус заказа</label><Select value={filters.orderStatus||undefined} onValueChange={(v)=>{setFilters({...filters,orderStatus:v===ALL?"":v});setPage(1)}}><SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger><SelectContent><SelectItem value={ALL}>Все</SelectItem>{STATUSES.map(s=>(<SelectItem key={s} value={s}>{s}</SelectItem>))}</SelectContent></Select></div>
-          <div className="col-span-12 flex gap-2 justify-end pt-1">{isFiltered&&(<Button variant="outline" onClick={()=>{setFilters({search:"",deliveryType:"",payMethod:"",payStatus:"",costMin:"",costMax:"",orderStatus:"",needConfirm:"",dateFrom:"",dateTo:""});setPage(1)}}>Сбросить</Button>)}</div>
-        </div></CardContent></Card>
+        <Card className="border border-indigo-100 rounded-xl shadow-md bg-white"><CardContent className="relative p-6">
+          <div className="grid grid-cols-12 gap-2 items-end text-sm">
+            <div className="col-span-3">
+              <label className="block text-[11px] text-gray-500 mb-1">Дата</label>
+              <div className="flex items-center gap-2">
+                <Input type="date" className="h-9" value={filters.dateFrom} onChange={(e)=>{setFilters({...filters,dateFrom:e.target.value});setPage(1)}}/>
+                <span className="text-gray-400">—</span>
+                <Input type="date" className="h-9" value={filters.dateTo} onChange={(e)=>{setFilters({...filters,dateTo:e.target.value});setPage(1)}}/>
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[11px] text-gray-500 mb-1">Тип доставки</label>
+              <Select value={filters.deliveryType||undefined} onValueChange={(v)=>{setFilters({...filters,deliveryType:v===ALL?"":v});setPage(1)}}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Все</SelectItem>
+                  <SelectItem value="Курьер">Курьер</SelectItem>
+                  <SelectItem value="Самовывоз">Самовывоз</SelectItem>
+                  <SelectItem value="СДЭК">СДЭК</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[11px] text-gray-500 mb-1">Способ оплаты</label>
+              <Select value={filters.payMethod||undefined} onValueChange={(v)=>{setFilters({...filters,payMethod:v===ALL?"":v});setPage(1)}}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Все</SelectItem>
+                  <SelectItem value="Карта">Банковская карта</SelectItem>
+                  <SelectItem value="СБП">СБП</SelectItem>
+                  <SelectItem value="Кредит">Кредит</SelectItem>
+                  <SelectItem value="Рассрочка">Рассрочка</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[11px] text-gray-500 mb-1">Статус оплаты</label>
+              <Select value={filters.payStatus||undefined} onValueChange={(v)=>{setFilters({...filters,payStatus:v===ALL?"":v});setPage(1)}}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Все</SelectItem>
+                  <SelectItem value="Оплачен">Оплачен</SelectItem>
+                  <SelectItem value="Не оплачен">Не оплачен</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[11px] text-gray-500 mb-1">Стоимость</label>
+              <div className="flex items-center gap-2">
+                <Input className="h-9" placeholder="от" value={filters.costMin} onChange={(e)=>{setFilters({...filters,costMin:e.target.value});setPage(1)}}/>
+                <span className="text-gray-400">—</span>
+                <Input className="h-9" placeholder="до" value={filters.costMax} onChange={(e)=>{setFilters({...filters,costMax:e.target.value});setPage(1)}}/>
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[11px] text-gray-500 mb-1">Нужно подтверждение</label>
+              <Select value={filters.needConfirm||undefined} onValueChange={(v)=>{setFilters({...filters,needConfirm:v===ALL?"":v});setPage(1)}}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Все</SelectItem>
+                  <SelectItem value="yes">Да</SelectItem>
+                  <SelectItem value="no">Нет</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-3">
+              <label className="block text-[11px] text-gray-500 mb-1">Статус заказа</label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Select value={filters.orderStatus||undefined} onValueChange={(v)=>{setFilters({...filters,orderStatus:v===ALL?"":v});setPage(1)}}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Все"/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Все</SelectItem>
+                      {STATUSES.map(s=>(<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {isFiltered && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-sm"
+                    onClick={()=>{setFilters({search:"",deliveryType:"",payMethod:"",payStatus:"",costMin:"",costMax:"",orderStatus:"",needConfirm:"",dateFrom:"",dateTo:""});setPage(1)}}
+                  >
+                    <span className="inline-flex items-center gap-2"><IcBroom className="w-4 h-4"/>Сбросить</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent></Card>
 
         <Card className="border border-gray-200 rounded-xl shadow-md bg-white"><CardContent className="p-0 overflow-x-clip"><table className="w-full table-auto text-[15px]"><colgroup>
     <col style={{ width: "6%" }} />
@@ -237,9 +321,65 @@ export default function OrdersDashboard(){
         <div className="space-y-8 col-span-1">
           <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4"><CardTitle>Информация о заказе</CardTitle></CardHeader><CardContent className="p-6 space-y-3 text-sm text-gray-700"><p><b>Дата заказа:</b> {order.date}</p><div><label className="block mb-1 text-gray-500">Статус заказа</label><Select value={order.status} onValueChange={(v)=>setOrder({...order,status:v as OrderStatus})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{STATUSES.map(s=>(<SelectItem key={s} value={s}>{s}</SelectItem>))}</SelectContent></Select></div><div><label className="block mb-1 text-gray-500">Тип оплаты</label><Select value={order.payment} onValueChange={(v)=>setOrder({...order,payment:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Карта">Банковская карта</SelectItem><SelectItem value="Рассрочка">Рассрочка</SelectItem><SelectItem value="СБП">СБП</SelectItem><SelectItem value="Кредит">Кредит</SelectItem></SelectContent></Select></div><div><label className="block mb-1 text-gray-500">Статус оплаты</label><Select value={order.paymentStatus} onValueChange={(v)=>setOrder({...order,paymentStatus:(v as PaymentStatusT)})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Оплачен">Оплачен</SelectItem><SelectItem value="Не оплачен">Не оплачен</SelectItem></SelectContent></Select></div><div className="flex items-center justify-between pt-2"><span className="text-gray-600">Требуется подтверждение менеджера</span><input type="checkbox" checked={order.needManagerHelp} onChange={(e)=>setOrder({...order,needManagerHelp:e.target.checked})}/></div></CardContent></Card>
 
-          <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4"><CardTitle>Информация о клиенте</CardTitle></CardHeader><CardContent className="p-6 text-sm text-gray-700 space-y-4"><div className="flex items-start justify-between"><div className="space-y-3 w-full"><div><label className="block mb-1 text-gray-500">Имя</label><Input value={order.client.name} readOnly className="bg-gray-50 cursor-not-allowed" /></div><div><label className="block mb-1 text-gray-500">Телефон</label><Input value={order.client.phone} readOnly className="bg-gray-50 cursor-not-allowed" /></div><div><label className="block mb-1 text-gray-500">Email</label><Input value={order.client.email} readOnly className="bg-gray-50 cursor-not-allowed" /></div></div><a href={`#/users/${encodeURIComponent(order.client.email||order.client.phone||order.client.name)}`} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 hover:underline mt-1" title="Открыть профиль клиента"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Открыть профиль</span></a></div><div className="flex items-center justify-between pt-2"><span className="text-gray-600">Другой получатель</span><Switch checked={order.recipient.enabled} onCheckedChange={v=>setOrder(prev=>({...prev,recipient:{...prev.recipient,enabled:v}}))}/></div>{order.recipient.enabled&&(<div className="grid grid-cols-2 gap-4 pt-2"><div><label className="block mb-1 text-gray-500">ФИО получателя</label><Input value={order.recipient.name} onChange={(e)=>setOrder(prev=>({...prev,recipient:{...prev.recipient,name:e.target.value}}))}/></div><div><label className="block mb-1 text-gray-500">Телефон получателя</label><Input value={order.recipient.phone} onChange={(e)=>setOrder(prev=>({...prev,recipient:{...prev.recipient,phone:e.target.value}}))}/></div></div>)}</CardContent></Card>
+          <Card className="border border-gray-200 rounded-xl bg-white relative">
+  <CardHeader className="px-6 py-4">
+    <CardTitle>Информация о клиенте</CardTitle>
+  </CardHeader>
+  <CardContent className="p-6 text-sm text-gray-700 space-y-4">
+    {/* Floating profile link — compact icon by default, expands on hover */}
+    <div className="absolute right-5 top-5 group">
+      <a
+        href={`#/users/${encodeURIComponent(order.client.email||order.client.phone||order.client.name)}`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex h-9 items-center rounded-full border border-indigo-200 bg-white/80 px-3 text-indigo-700 shadow-sm backdrop-blur transition-colors hover:bg-indigo-50"
+        title="Открыть профиль клиента"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-all group-hover:mr-2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all group-hover:max-w-[140px]">Открыть профиль</span>
+      </a>
+    </div>
 
-          <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4"><CardTitle>Доставка</CardTitle></CardHeader><CardContent className="p-6 text-sm text-gray-700 space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block mb-1 text-gray-600 font-medium">Тип доставки</label><Select value={order.delivery.type} onValueChange={(v)=>setOrder(p=>({...p,delivery:{...p.delivery,type:v}}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Курьер">Курьер</SelectItem><SelectItem value="Самовывоз">Самовывоз</SelectItem><SelectItem value="СДЭК">СДЭК</SelectItem></SelectContent></Select></div><div><label className="block mb-1 text-gray-600 font-medium">Стоимость доставки</label><Input value={order.delivery.cost as any} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,cost:e.target.value}}))}/></div></div><div><label className="block mb-1 text-gray-600 font-medium">Город</label><Select value={order.delivery.city} onValueChange={(v)=>setOrder(p=>({...p,delivery:{...p.delivery,city:v}}))}><SelectTrigger><SelectValue placeholder="Выберите город"/></SelectTrigger><SelectContent>{CITIES.map(c=>(<SelectItem key={c} value={c}>{c}</SelectItem>))}</SelectContent></Select></div><div><label className="block mb-1 text-gray-600 font-medium">Адрес:</label><Input value={order.delivery.address} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,address:e.target.value}}))}/></div><div className="grid grid-cols-2 gap-4"><div><label className="block mb-1 text-gray-600 font-medium">Планируемая дата</label><Input type="date" value={order.delivery.date} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,date:e.target.value}}))}/></div><div><label className="block mb-1 text-gray-600 font-medium">Интервал времени</label><Input value={order.delivery.interval} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,interval:e.target.value}}))}/></div></div><div><label className="block mb-1 text-gray-600 font-medium">Комментарий</label><Textarea value={order.delivery.comment} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,comment:e.target.value}}))}/></div></CardContent></Card>
+    <div className="space-y-3 w-full">
+      <div>
+        <label className="block mb-1 text-gray-500">Имя</label>
+        <Input value={order.client.name} readOnly className="bg-gray-50 cursor-not-allowed" />
+      </div>
+      <div>
+        <label className="block mb-1 text-gray-500">Телефон</label>
+        <Input value={order.client.phone} readOnly className="bg-gray-50 cursor-not-allowed" />
+      </div>
+      <div>
+        <label className="block mb-1 text-gray-500">Email</label>
+        <Input value={order.client.email} readOnly className="bg-gray-50 cursor-not-allowed" />
+      </div>
+    </div>
+
+    <div className="flex items-center justify-between pt-2">
+      <span className="text-gray-600">Другой получатель</span>
+      <Switch checked={order.recipient.enabled} onCheckedChange={v=>setOrder(prev=>({...prev,recipient:{...prev.recipient,enabled:v}}))}/>
+    </div>
+
+    {order.recipient.enabled&&(
+      <div className="grid grid-cols-2 gap-4 pt-2">
+        <div>
+          <label className="block mb-1 text-gray-500">ФИО получателя</label>
+          <Input value={order.recipient.name} onChange={(e)=>setOrder(prev=>({...prev,recipient:{...prev.recipient,name:e.target.value}}))}/>
+        </div>
+        <div>
+          <label className="block mb-1 text-gray-500">Телефон получателя</label>
+          <Input value={order.recipient.phone} onChange={(e)=>setOrder(prev=>({...prev,recipient:{...prev.recipient,phone:e.target.value}}))}/>
+        </div>
+      </div>
+    )}
+  </CardContent>
+</Card>
+
+          <Card className="border border-gray-200 rounded-xl bg-white"><CardHeader className="px-6 py-4"><CardTitle>Доставка</CardTitle></CardHeader><CardContent className="p-6 text-sm text-gray-700 space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block mb-1 text-gray-600 font-medium">Тип доставки</label><Select value={order.delivery.type} onValueChange={(v)=>setOrder(p=>({...p,delivery:{...p.delivery,type:v}}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Курьер">Курьер</SelectItem><SelectItem value="Самовывоз">Самовывоз</SelectItem><SelectItem value="СДЭК">СДЭК</SelectItem></SelectContent></Select></div><div><label className="block mb-1 text-gray-600 font-medium">Стоимость доставки</label><Input value={order.delivery.cost as any} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,cost:e.target.value}}))}/></div></div><div><label className="block mb-1 text-gray-600 font-medium">Город</label><Select value={order.delivery.city} onValueChange={(v)=>setOrder(p=>({...p,delivery:{...p,delivery,city:v}}))}><SelectTrigger><SelectValue placeholder="Выберите город"/></SelectTrigger><SelectContent>{CITIES.map(c=>(<SelectItem key={c} value={c}>{c}</SelectItem>))}</SelectContent></Select></div><div><label className="block mb-1 text-gray-600 font-medium">Адрес:</label><Input value={order.delivery.address} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,address:e.target.value}}))}/></div><div className="grid grid-cols-2 gap-4"><div><label className="block mb-1 text-gray-600 font-medium">Планируемая дата</label><Input type="date" value={order.delivery.date} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,date:e.target.value}}))}/></div><div><label className="block mb-1 text-gray-600 font-medium">Интервал времени</label><Input value={order.delivery.interval} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,interval:e.target.value}}))}/></div></div><div><label className="block mb-1 text-gray-600 font-medium">Комментарий</label><Textarea value={order.delivery.comment} onChange={(e)=>setOrder(p=>({...p,delivery:{...p.delivery,comment:e.target.value}}))}/></div></CardContent></Card>
         </div>
 
         <div className="space-y-8 col-span-2">
